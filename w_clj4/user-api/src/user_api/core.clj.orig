@@ -1,0 +1,236 @@
+(ns aol-gathr-api.core
+  (:gen-class)
+  (:use aol-gathr-api.frontend
+        aol-gathr-api.backend
+        aol-gathr-api.mode
+  )
+  (:require [ring.middleware.params   :as params])
+  (:require [ring.adapter.jetty       :as jetty])
+  (:require [compojure.core           :as comp])
+  (:require [compojure.route          :as route])
+  (:import [java.util UUID Date]
+           [java.io FileNotFoundException]
+           [aol_gathr_api.frontend AolGathrFrontEndJson AolGathrFrontEndHtml AolGathrFrontEndPlain AolGathrFrontEndXml]
+           [aol_gathr_api.backend AolGathrBackendService])
+)
+
+;
+; todo use mode to get configuration map as needed.
+;
+
+;
+; appId
+;
+
+; this is to verify that the incoming request has an appId
+
+(defn valid-appId? [ requestAppId ]
+    (= (get-app-id) requestAppId)
+  )
+
+(defn valid-request?
+   "returns true if the HTTP request has a proper vendorAppId and a non nil requestId"
+   [ req ]
+   (let [params (get req :params)
+         requestId (get params "requestId")
+         vendorAppId (get params "vendorAppId") ]
+      (and (valid-appId? vendorAppId) (not (nil? requestId)))
+   )
+)
+
+
+
+;
+; ring wrapper methods
+;
+(defn wrap-request-id
+  "generate a uuid on every request, make it available to the log4j
+mdc, and add it to the request object"
+  [handler]
+  (fn [req]
+    (binding [*request-id* (.toString (UUID/randomUUID))]
+      (handler req))))
+
+(defn wrap-front-end
+  "generate a front end response object depending on the accept header
+or other hints"
+  [handler]
+  (fn [req]
+    (let [accept ((:headers req) "accept")
+          front-end
+            (cond
+              (nil? accept)
+                (AolGathrFrontEndXml. req)
+              (= accept "text/xml")
+                (AolGathrFrontEndXml. req)
+              (= accept "application/json")
+                (AolGathrFrontEndJson. req)
+              (= accept "text/html")
+                (AolGathrFrontEndHtml. req)
+              (= accept "text/plain")
+                (AolGathrFrontEndPlain. req)
+              (.contains accept "text/xml")
+                (AolGathrFrontEndXml. req)
+              (.contains accept "application/json")
+                (AolGathrFrontEndJson. req)
+              :else
+                (AolGathrFrontEndXml. req))]
+        (binding [*front-end* front-end]
+          (handler req))
+      )
+    )
+)
+
+(defn wrap-back-end
+  "set the back-end needed to process the request"
+  [handler]
+  (fn [req]
+    (binding [ *back-end* (AolGathrBackendService. ) ]
+      (handler req)
+    )
+  )
+)
+
+;
+; setting up routes here. needs dependency on *front-end* *back-end*
+;
+(comp/defroutes api-version-2012-11-01
+  ;
+  ; get the service status
+  ;
+  (comp/GET "/ws/2012-11-01/aol/servicestatus" req
+    ;[ & qsm :as req]
+    ; do something
+    (let [params (get req :params)
+          requestId (get params "requestId")
+          token (get params "token")
+          sku (get params "sku")
+          attributes (get params "attributes")
+          vendorAppId (get params "vendorAppId") ]
+        ; vendorAppId from request must be valid and requestId from request must not be nil
+        (if (not (valid-request? req))
+          (badRequest *front-end* requestId params)
+          ; else
+          (aolServiceStatus *front-end* requestId (getServiceStatus *back-end* token) attributes params)
+        )
+    )
+  )
+
+  ;
+  ; test url for connectivity
+  ;
+  (comp/GET "/ws/2012-11-01/aol/test" req
+    {
+      :status 200
+      :headers {"Context-type" "text/html"}
+      :body (str "you requested:" req)
+    }
+  )
+
+  ;
+  ; check global values
+  ;
+  (comp/GET "/ws/2012-11-01/aol/info" req
+    (if (valid-request? req)
+     ; then
+      {
+          :status 200
+          :headers {"Context-type" "text/html"}
+          :body (str "backend: " *back-end* "; front-end: " *front-end* "; mode=" @*mode* "; request-id=" *request-id*)
+      }
+      ; else
+      (badRequest *front-end* ((req :params) "requestId") (req :params))
+    )
+  )
+
+  ;
+  ; modify service status
+  ;
+  (comp/POST "/ws/2012-11-01/aol/servicestatus"
+    req
+    (let [params (get req :params)
+         requestId (get params "requestId")
+         token (get params "token")
+         sku (get params "sku")
+         attributes (get params "attributes")
+         action (get params "action")
+         vendorAppId (get params "vendorAppId") ]
+         ; vendorAppId from request must be valid and requestId from request must not be nil
+         (if (not (valid-request? req))
+            (badRequest *front-end* requestId params)
+            ; else perform the operation (action handled in backend)
+            (let [result (modifyServiceStatus *back-end* token sku action attributes)]
+                (cond
+                  (= result "UNKNOWNTOKEN")
+                    (aolServiceStatus *front-end* requestId "UNKNOWNTOKEN" attributes params)
+                  (= result "NOT_IMPLEMENTED")
+                    (badRequest *front-end* requestId params)
+                  (= result "SUCCESS")
+                    (aolServiceStatus *front-end* requestId action attributes params)
+                  :else
+                    (badRequest *front-end* requestId params)
+                )
+            )
+          )
+    )
+  )
+
+  (comp/ANY "/*"
+    req
+    (let [params (get req :params)]
+      (notFound *front-end* (get params "requestId") params)
+    )
+  )
+)
+
+;
+;  here to setup the launching and wrapping of calls
+;
+; (wrap-request-id (params/wrap-params #'api-version-2012-11-01)
+(def public-app
+  (params/wrap-params (wrap-request-id (wrap-back-end (wrap-front-end #'api-version-2012-11-01))))
+)
+
+;
+; make any initializations here. perhaps select which backend to use
+;
+
+(defn -init
+  [args]
+  (process-cli args)
+)
+
+(defn -main
+  [& args]
+
+    (let [cli-vector (-init (vec args))
+        param-map (first cli-vector)]
+      (if (:usage param-map)
+         ; print usage
+         (println (last cli-vector))
+         ; else
+         (do
+           (try
+             (let [config-map (setup-config-map cli-vector)]
+               (dosync (alter *mode* str (config-map :mode)))
+               (dosync (alter *config-data* conj config-map))
+               (dosync (alter *db* conj (:dbspec config-map)))
+               (jetty/run-jetty public-app (:jetty-options config-map))
+             )
+             (catch FileNotFoundException fe (println (str "\n\nERROR: unable to setup config map (missing properties file?)\n\n" (last cli-vector))))
+             (catch Exception e             (do
+                                               (.printStackTrace e)
+                                               (println (str "\n\nERROR: unable to start server\n\n" (last cli-vector)))
+                                               )
+             )
+           )
+         )
+      )
+    )
+
+  ;       (binding [ *db-spec* ]); initialize back end service and launch jetty
+  ;(binding [ *back-end* (AolGathrBackendService.) ]
+  ;(jetty/run-jetty public-app (get-jetty-options))
+  ;)
+)
+

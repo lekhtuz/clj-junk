@@ -1,0 +1,3 @@
+#Wed May 15 22:08:21 EDT 2013
+cmdhistory=[";; Switching to createcro.core namespace" "(.. System (getProperties) (get \\"os.name\\"))" "(.. System (getProperties) (get \\"CLASSPATH\\"))" "(.. System (getProperties) (get \\"classpath\\"))" "(System/getProperties)" "(.. System (getProperties) (get \\"java.class.classpath\\"))" "(.. System (getProperties) (get \\"java.class.path\\"))" ";; Switching to createcro.core namespace" "(def ua (UserAccount.))" "(println ua)" ";; Switching to createcro.core namespace"]
+eclipse.preferences.version=1

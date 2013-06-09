@@ -1,0 +1,114 @@
+(ns aol-gathr-api.mode)
+(use 'clojure.tools.cli)
+
+  ;
+  ; todo use mode to get configuration map as needed.
+  ;
+  (def ^:dynamic *mode* (ref "prod"))
+  (def ^:dynamic *config-data* (ref {}))
+  (def ^:dynamic *db* (ref {}))
+  (def ^:dynamic *request-id* nil)
+  (def ^:dynamic *back-end* nil)
+  (def ^:dynamic *front-end* nil)
+
+  (def crAppIdMap {
+              :dev       "dc38929e-f428-49b0-b432-e6bbdaffb264"
+              :qa        "bc1b47ea-dba6-4838-a5cf-01002a9750bb"
+              :staging   "bc1b47ea-dba6-4838-a5cf-01002a9750bb"
+              :prod      "6f3a61e7-049c-4e94-9eed-c848094cd619"
+    }
+  )
+
+  (defn convert-keywords-in-map [ thismap ]
+    (into {}
+      (for [[k v] thismap]
+        [(keyword k) v]))
+  )
+
+  (defn load-props
+    [file-name]
+    (with-open [^java.io.Reader reader (clojure.java.io/reader file-name)]
+      (let [props (java.util.Properties.)]
+        (.load props reader)
+        (into {} (for [[k v] props] [(keyword k) (read-string v)])))))
+
+  (defn process-cli [args]
+        (cli args
+           ["-p" "--port" "Listen on this port" :default 8084 :parse-fn #(Integer. %)]
+           ["-m" "--mode" "which mode to use" :default "prod"]
+           ["-d" "--db-prop-file" "which db configuration file to use" :default "aol-gathr-dbspec.properties"]
+           ["-u" "--usage" "this usage information" :flag true]
+        )
+  )
+
+
+  (defn load-props [filename]
+    (let [io (java.io.FileInputStream. filename)
+        prop (java.util.Properties.)]
+    (.load prop io)
+    (into {} prop)))
+
+  (defn load-clj-config [filename]
+    (with-open [r (clojure.java.io/reader filename)]
+      (read (java.io.PushbackReader. r))))
+
+  (defn load-config-file [filename]
+    (cond
+        (.endsWith filename ".properties")
+            (load-props filename)
+        (.endsWith filename ".clj")
+            (load-clj-config filename)
+        :else
+            (load-props filename)
+  )
+)
+
+  (defn setup-config-map [cli-vector]
+    (let [
+         arg-data          (first cli-vector)
+         other-args-vector (second cli-vector)
+         usage             (last cli-vector)
+         mode              (arg-data :mode)
+         dbspec-prop-file  (arg-data :db-prop-file)
+         port              (arg-data :port)
+         config-map        {}
+       ]
+       (merge {:jetty-options {:port port}} {:appId (crAppIdMap (keyword mode))} {:dbspec (convert-keywords-in-map (load-config-file dbspec-prop-file))})
+    )
+  )
+
+
+  (def db-credential-spec { :dev-dennis {
+                                  :classname "oracle.jdbc.driver.OracleDriver"  ; must be in classpath
+                                  :subprotocol "oracle"
+                                  :subname "thin:@10.22.30.201:1521:emdev1"
+                                  :user "ec_dev_dennis"
+                                  :password "ecdevdennis" }
+                            :qa3  {
+                                  :classname "oracle.jdbc.driver.OracleDriver"  ; must be in classpath
+                                  :subprotocol "oracle"
+                                  :subname "thin:@172.20.17.70:1521:EMQA1"
+                                  :user "ec_qa3"
+                                  :password "ecqa3"
+                               }
+                        }
+  )
+
+  (defn get-app-id
+     "get the id based on mode"
+     []
+      (:appId @*config-data*)
+    )
+
+  (defn get-db-credential-spec
+      "returns a dbspec"
+      []
+      (:appId @*db*)
+      ;(db-credential-spec (keyword *mode*))
+    )
+
+  (defn get-jetty-options
+      "return a map of web server options based on *mode*"
+      []
+      (@*config-data* :jetty-options)
+    )
