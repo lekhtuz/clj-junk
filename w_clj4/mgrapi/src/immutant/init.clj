@@ -3,8 +3,12 @@
   
   (:require [immutant.messaging :as messaging]
             [immutant.web :as web]
-            [immutant.util :as util])
+            [immutant.util :as util]
+            [clojure.tools.logging :as log]
+            )
 )
+
+(log/error "Processing immutant.init started...")
 
 ;; This file will be loaded when the application is deployed to Immutant, and
 ;; can be used to start services your app needs. Examples:

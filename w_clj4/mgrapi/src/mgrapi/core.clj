@@ -3,7 +3,7 @@
   (:use mgrapi.spring)
 )
 
-;(&init [ "applicationContext.xml" ])
+(&init [ "applicationContext.xml" ])
 
 (defn home [request]
   {
