@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans default-autowire="byName"
+	xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+
+	<bean name="accountTransformer" class="com.emeta.cu.business.transformer.impl.AccountTransformerImpl"/>
+
+	<bean id="eRightsToDomainAddressTransformer" class="com.emeta.cu.business.transformer.impl.AddressTransformerImpl">
+		<property name="mapperList">
+			<list>
+				<ref bean="addressTitleMapEntry" />
+				<ref bean="addressPrefixMapEntry" />
+				<ref bean="addressFirstNameMapEntry" />
+				<ref bean="addressMiddleNameMapEntry" />
+				<ref bean="addressLastNameMapEntry" />
+				<ref bean="addressSuffixMapEntry" />
+				<ref bean="addressStreet1MapEntry" />
+				<ref bean="addressStreet2MapEntry" />
+				<ref bean="addressStreet3MapEntry" />
+				<ref bean="addressCityMapEntry" />
+				<ref bean="addressStateMapEntry" />
+				<ref bean="addressPostalCodeMapEntry" />
+				<ref bean="addressCountryMapEntry" />
+				<ref bean="addressProvinceMapEntry" />
+			</list>
+		</property>
+	</bean>
+
+	<bean id="addressTitleMapEntry" class="com.emeta.cu.business.transformer.impl.TransformationMapEntry">
+		<property name="sourceObjectName" value="Address"/>
+		<property name="sourcePropertyName" value="physical.Default.title"/>
+		<property name="sourcePropertyTypeName" value="java.lang.String"/>
+		<property name="acquirer" ref="metaDataAcquirer"/>
+		<property name="targetObjectName" value="Address"/>
+		<property name="targetPropertyTypeName" value="java.lang.String"/>
+		<property name="targetPropertyName" value="title"/>
+		<property name="mutator" ref="beanMutator"/>
+	</bean>
+
+	<bean id="addressPrefixMapEntry" class="com.emeta.cu.business.transformer.impl.TransformationMapEntry">
+		<property name="sourceObjectName" value="Address"/>
+		<property name="sourcePropertyName" value="physical.Default.prefix"/>
+		<property name="sourcePropertyTypeName" value="java.lang.String"/>
+		<property name="acquirer" ref="metaDataAcquirer"/>
+		<property name="targetObjectName" value="Address"/>
+		<property name="targetPropertyTypeName" value="java.lang.String"/>
+		<property name="targetPropertyName" value="prefix"/>
+		<property name="mutator" ref="beanMutator"/>
+	</bean>
+
+
+	<bean id="addressFirstNameMapEntry" class="com.emeta.cu.business.transformer.impl.TransformationMapEntry">
+		<property name="sourceObjectName" value="Address"/>
+		<property name="sourcePropertyName" value="physical.Default.firstName"/>
+		<property name="sourcePropertyTypeName" value="java.lang.String"/>
+		<property name="acquirer" ref="metaDataAcquirer"/>
+		<property name="targetObjectName" value="Address"/>
+		<property name="targetPropertyTypeName" value="java.lang.String"/>
+		<property name="targetPropertyName" value="firstName"/>
+		<property name="mutator" ref="beanMutator"/>
+	</bean>
+
+	<bean id="addressMiddleNameMapEntry" class="com.emeta.cu.business.transformer.impl.TransformationMapEntry">
+		<property name="sourceObjectName" value="Address"/>
+		<property name="sourcePropertyName" value="physical.Default.middleName"/>
+		<property name="sourcePropertyTypeName" value="java.lang.String"/>
+		<property name="acquirer" ref="metaDataAcquirer"/>
+		<property name="targetObjectName" value="Address"/>
+		<property name="targetPropertyTypeName" value="java.lang.String"/>
+		<property name="targetPropertyName" value="middleName"/>
+		<property name="mutator" ref="beanMutator"/>
+	</bean>
+
+
+	<bean id="addressLastNameMapEntry" class="com.emeta.cu.business.transformer.impl.TransformationMapEntry">
+		<property name="sourceObjectName" value="Address"/>
+		<property name="sourcePropertyName" value="physical.Default.lastName"/>
+		<property name="sourcePropertyTypeName" value="java.lang.String"/>
+		<property name="acquirer" ref="metaDataAcquirer"/>
+		<property name="targetObjectName" value="Address"/>
+		<property name="targetPropertyTypeName" value="java.lang.String"/>
+		<property name="targetPropertyName" value="lastName"/>
+		<property name="mutator" ref="beanMutator"/>
+	</bean>
+
+	<bean id="addressSuffixMapEntry" class="com.emeta.cu.business.transformer.impl.TransformationMapEntry">
+		<property name="sourceObjectName" value="Address"/>
+		<property name="sourcePropertyName" value="physical.Default.suffix"/>
+		<property name="sourcePropertyTypeName" value="java.lang.String"/>
+		<property name="acquirer" ref="metaDataAcquirer"/>
+		<property name="targetObjectName" value="Address"/>
+		<property name="targetPropertyTypeName" value="java.lang.String"/>
+		<property name="targetPropertyName" value="suffix"/>
+		<property name="mutator" ref="beanMutator"/>
+	</bean>
+
+	<bean id="addressStreet1MapEntry" class="com.emeta.cu.business.transformer.impl.TransformationMapEntry">
+		<property name="sourceObjectName" value="Address"/>
+		<property name="sourcePropertyName" value="physical.Default.line1"/>
+		<property name="sourcePropertyTypeName" value="java.lang.String"/>
+		<property name="acquirer" ref="metaDataAcquirer"/>
+		<property name="targetObjectName" value="Address"/>
+		<property name="targetPropertyTypeName" value="java.lang.String"/>
+		<property name="targetPropertyName" value="address1"/>
+		<property name="mutator" ref="beanMutator"/>
+	</bean>
+
+	<bean id="addressStreet2MapEntry" class="com.emeta.cu.business.transformer.impl.TransformationMapEntry">
+		<property name="sourceObjectName" value="Address"/>
+		<property name="sourcePropertyName" value="physical.Default.line2"/>
+		<property name="sourcePropertyTypeName" value="java.lang.String"/>
+		<property name="acquirer" ref="metaDataAcquirer"/>
+		<property name="targetObjectName" value="Address"/>
+		<property name="targetPropertyTypeName" value="java.lang.String"/>
+		<property name="targetPropertyName" value="address2"/>
+		<property name="mutator" ref="beanMutator"/>
+	</bean>
+
+	<bean id="addressStreet3MapEntry" class="com.emeta.cu.business.transformer.impl.TransformationMapEntry">
+		<property name="sourceObjectName" value="Address"/>
+		<property name="sourcePropertyName" value="physical.Default.line3"/>
+		<property name="sourcePropertyTypeName" value="java.lang.String"/>
+		<property name="acquirer" ref="metaDataAcquirer"/>
+		<property name="targetObjectName" value="Address"/>
+		<property name="targetPropertyTypeName" value="java.lang.String"/>
+		<property name="targetPropertyName" value="address3"/>
+		<property name="mutator" ref="beanMutator"/>
+	</bean>
+
+	<bean id="addressCityMapEntry" class="com.emeta.cu.business.transformer.impl.TransformationMapEntry">
+		<property name="sourceObjectName" value="Address"/>
+		<property name="sourcePropertyName" value="physical.Default.city"/>
+		<property name="sourcePropertyTypeName" value="java.lang.String"/>
+		<property name="acquirer" ref="metaDataAcquirer"/>
+		<property name="targetObjectName" value="Address"/>
+		<property name="targetPropertyTypeName" value="java.lang.String"/>
+		<property name="targetPropertyName" value="city"/>
+		<property name="mutator" ref="beanMutator"/>
+	</bean>
+
+	<bean id="addressStateMapEntry" class="com.emeta.cu.business.transformer.impl.TransformationMapEntry">
+		<property name="sourceObjectName" value="Address"/>
+		<property name="sourcePropertyName" value="physical.Default.state"/>
+		<property name="sourcePropertyTypeName" value="java.lang.String"/>
+		<property name="acquirer" ref="metaDataAcquirer"/>
+		<property name="targetObjectName" value="Address"/>
+		<property name="targetPropertyTypeName" value="java.lang.String"/>
+		<property name="targetPropertyName" value="state"/>
+		<property name="mutator" ref="beanMutator"/>
+	</bean>
+
+	<bean id="addressPostalCodeMapEntry" class="com.emeta.cu.business.transformer.impl.TransformationMapEntry">
+		<property name="sourceObjectName" value="Address"/>
+		<property name="sourcePropertyName" value="physical.Default.postalCode"/>
+		<property name="sourcePropertyTypeName" value="java.lang.String"/>
+		<property name="acquirer" ref="metaDataAcquirer"/>
+		<property name="targetObjectName" value="Address"/>
+		<property name="targetPropertyTypeName" value="java.lang.String"/>
+		<property name="targetPropertyName" value="postalCode"/>
+		<property name="mutator" ref="beanMutator"/>
+	</bean>
+
+	<bean id="addressCountryMapEntry" class="com.emeta.cu.business.transformer.impl.TransformationMapEntry">
+		<property name="sourceObjectName" value="Address"/>
+		<property name="sourcePropertyName" value="physical.Default.country"/>
+		<property name="sourcePropertyTypeName" value="java.lang.String"/>
+		<property name="acquirer" ref="metaDataAcquirer"/>
+		<property name="targetObjectName" value="Address"/>
+		<property name="targetPropertyTypeName" value="java.lang.String"/>
+		<property name="targetPropertyName" value="country"/>
+		<property name="mutator" ref="beanMutator"/>
+	</bean>
+
+	<bean id="addressProvinceMapEntry" class="com.emeta.cu.business.transformer.impl.TransformationMapEntry">
+		<property name="sourceObjectName" value="Address"/>
+		<property name="sourcePropertyName" value="physical.Default.province"/>
+		<property name="sourcePropertyTypeName" value="java.lang.String"/>
+		<property name="acquirer" ref="metaDataAcquirer"/>
+		<property name="targetObjectName" value="Address"/>
+		<property name="targetPropertyTypeName" value="java.lang.String"/>
+		<property name="targetPropertyName" value="province"/>
+		<property name="mutator" ref="beanMutator"/>
+	</bean>
+
+	<bean id="metaDataAcquirer" class="com.emeta.cu.business.transformer.impl.MetaDataAcquirer"/>
+	<bean id="beanMutator" class="com.emeta.cu.loader.mutator.BeanMutator" />
+
+	<bean id="eRightsURIToDomainEmailTransformer" class="com.emeta.cu.business.transformer.impl.AddressTransformerImpl">
+		<property name="mapperList">
+			<list>
+				<ref bean="emailAddressMapEntry" />
+			</list>
+		</property>
+	</bean>
+
+	<bean id="emailAddressMapEntry" class="com.emeta.cu.business.transformer.impl.TransformationMapEntry">
+		<property name="sourceObjectName" value="URI"/>
+		<property name="sourcePropertyName" value="uri.Default.schemeSpecificPart"/>
+		<property name="sourcePropertyTypeName" value="java.lang.String"/>
+		<property name="acquirer" ref="metaDataAcquirer"/>
+		<property name="targetObjectName" value="email"/>
+		<property name="targetPropertyTypeName" value="java.lang.String"/>
+		<property name="targetPropertyName" value="emailAddress"/>
+		<property name="mutator" ref="beanMutator"/>
+	</bean>
+
+	<bean id="subscriptionInfoTransformer" class="com.emeta.cu.business.transformer.impl.SubscriptionInfoTransformerImpl"/>
+	<bean id="chargeInfoTransformer" class="com.emeta.cu.business.transformer.impl.ChargeInfoTransformerImpl" />
+
+</beans>

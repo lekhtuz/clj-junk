@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans default-autowire="byName"
+	xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+
+	<bean id="commandExecutionEnvironmentLocator" class="com.emeta.cu.business.manager.helper.CommandExecutionEnvironmentLocator">
+		<property name="commandExecutionEnvironment" ref="erightsCommandExecutionEnvironment"/>
+	</bean>
+
+	<bean id="erightsCommandExecutionEnvironment" class="com.emeta.erweb.commandapi.impl.CommandApiExecutionEnvironmentImpl">
+		<property name="planLocator" ref="cuPlanLocator"/>
+		<property name="commandExecutionApiPool" ref="erightsCommandExecutionApiPool"/>
+	</bean>
+
+	<bean id="cuPlanLocator" class="com.emeta.cu.business.manager.command.utils.DefaultExecutionPlanLocator">
+		<property name="enableTransactions" value="true"/>
+	</bean>
+
+	<bean id="erightsCommandExecutionApiPool" class="com.emeta.erweb.commandapi4x.impl.CommandExecutionApiPoolLocal4x"
+			init-method="init">
+		<property name="connectionManager" ref="remoteErightsConnectionManager"/>
+	</bean>
+	
+	<bean id="remoteErightsConnectionManager" class="com.emeta.cu.erweb.util.DebugErightsConnectionManager"
+			init-method="init" lazy-init="true">
+		<property name="uris">
+			<list><value>127.0.0.1:18000</value></list>
+		</property>
+
+		<property name="adminName" value="administrator"/>
+		<property name="adminPassword" ref="adminPasswordValueService"/>
+		<property name="loadBalancer" ref="loadBalancer"/>
+		<property name="minPoolConnections" value="10"/>
+		<property name="maxPoolConnections" value="10"/>
+		<property name="maintenanceThreadInterval" value="120000"/>
+	</bean>
+
+	<bean id="adminPasswordValueService" class="com.emeta.cu.util.DirectStringSingleValueService">
+		<property name="stringValue" value="Chamberlain"/>
+	</bean>
+
+	<bean id="loadBalancer" class="com.emeta.erweb.erights4x.impl.LoadBalancerFavorite">
+		<property name="favoriteServer" value="172.20.16.91:27000"/>
+	</bean>	
+</beans>
