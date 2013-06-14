@@ -1,17 +1,18 @@
 (ns mgrapi.handler
   (:use 
+    [compojure.core :as comp]
+    [compojure.handler :as handler]
+    [compojure.route :as route]
+    [mgrapi.spring :as spring]
     [ring.middleware.json :as json]
-    
+    [ring.middleware.resource :as resource]
   )
 
-  (:require [compojure.core :refer [defroutes routes]]
-            [ring.middleware.resource :refer [wrap-resource]]
-            [ring.middleware.file-info :refer [wrap-file-info]]
+  (:require [ring.middleware.file-info :refer [wrap-file-info]]
             [hiccup.middleware :refer [wrap-base-url]]
-            [compojure.handler :as handler]
-            [compojure.route :as route]
-            [mgrapi.spring :as spring]
-            [mgrapi.routes.home :refer [home-routes]]))
+            [mgrapi.routes.home :refer [home-routes]]
+  )
+)
 
 (def context-files
   [
@@ -29,7 +30,7 @@
 (defn destroy []
   (println "mgrapi is shutting down"))
   
-(defroutes app-routes
+(comp/defroutes app-routes
   (route/resources "/")
   (route/not-found "Not Found"))
 
@@ -43,5 +44,6 @@
     (wrap-base-url)
     (wrap-file-info)
     (json/wrap-json-response)
+    (json/wrap-json-body)
   )
 )

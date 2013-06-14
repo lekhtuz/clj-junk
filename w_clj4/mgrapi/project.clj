@@ -18,6 +18,7 @@
                  [net.sf.ehcache/ehcache-core "2.6.5"]
                  [org.springframework/spring-context "3.2.3.RELEASE"]
                  [org.slf4j/slf4j-api "1.7.2"]
+                 [org.slf4j/slf4j-simple "1.7.2"]
 
                  ; Erights/pwiec jars
                  [pwiec/comp-businesslayer "1.2.0"]
