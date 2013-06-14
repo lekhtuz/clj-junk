@@ -6,7 +6,9 @@
 
 (declare ^:dynamic *spring-context*)
 (declare ^:dynamic *bean-map*)
+
 (declare ^:dynamic account-manager)
+(declare ^:dynamic search-manager)
 
 (defn load-context 
   "Load a Spring Framwork Application context based on the locations"
@@ -48,4 +50,5 @@
     (def ^:dynamic *spring-context* ctx)
     (def ^:dynamic *bean-map* (create-bean-map ctx))
     (def ^:dynamic account-manager (get-bean "accountManager"))
+    (def ^:dynamic search-manager (get-bean "searchManager"))
     ctx))

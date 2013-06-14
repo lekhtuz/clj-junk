@@ -2,3 +2,8 @@
 (= nil 1)
 (nil? 5)
 (nil? nil)
+(String? "a")
+(java.lang.String? "a")
+(instance? String "a")
+(class? "a")
+(class? String)
