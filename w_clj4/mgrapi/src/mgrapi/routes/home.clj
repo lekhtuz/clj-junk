@@ -2,7 +2,8 @@
   (:use
     [mgrapi.spring :as spring :only (account-manager search-manager)]
     [mgrapi.views.layout :as layout]
-    [clojure.java.data]
+    [clojure.java.data :as data]
+    [clojure.tools.logging :as log]
     [compojure.core :as comp :only (GET ANY)]
     [compojure.route :as route :only (not-found)]
     [ring.util.response :as response :only [response]]
@@ -20,15 +21,16 @@
   (layout/common [:h1 "home dir!!!!!!!"])
 )
 
-;(defmethod from-java com.emeta.cu.business.domain.SubscriptionInfo [instance]
-  ; your custom logic for turing this instance into a clojure data structure
-;  { :productContext "CRO", :apsReportLocation "reportlocation" }
-;)
-;(prefer-method from-java com.emeta.cu.business.domain.SubscriptionInfo Object)
-
 (defn- deep-bean [bean]
+  (log/info "deep-bean called. bean=" bean)
   (if (instance? UserAccount bean) (.setSubscriptions bean nil))  ; remove this line after array conversion is sorted out
-  (from-java bean)
+  (data/from-java bean)
+)
+
+(defn- create-error-response [status-code message]
+  (-> (response/response {:error message})
+      (response/status status-code)
+  )
 )
 
 (defn- account-retrieve-id [id request]
@@ -37,17 +39,15 @@
 	    [
 	     user-account (deep-bean (.getUserAccount spring/account-manager (Integer. id)))
 	    ]
-	    (response/response user-account)
+      (log/info "deep-bean returned. user-account=" user-account)
+      (if (nil? user-account)
+        (create-error-response (HttpServletResponse/SC_NOT_FOUND) (str "Account " id " does not exist"))
+        (response/response user-account)
+      )
     )
-    (catch NullPointerException e (-> 
-                                    (response/response {:error (str "Account " id " does not exist")})
-                                    (response/status (. HttpServletResponse SC_NOT_FOUND))
-                                  )
-    )
-    (catch NumberFormatException e (-> 
-                                     (response/response {:error (str "Invalid account id - " id)}) 
-                                     (response/status (. HttpServletResponse SC_BAD_REQUEST))
-                                   )
+    (catch NumberFormatException e
+      (log/info "NumberFormatException: account id is not a valid number")
+      (create-error-response (HttpServletResponse/SC_BAD_REQUEST) (str "Invalid account id - " id))
     )
   )
 )
@@ -56,7 +56,7 @@
   (try
 	  (let
 	    [
-       sc (SearchCriterion. "userName" (. SearchCriterion EQUAL) login)
+       sc (SearchCriterion. "userName" (SearchCriterion/EQUAL) login)
        search (Search. "UserSearch" (into-array SearchCriterion [ sc ]))
 	    ]
       (.setPageSize search 1)
@@ -66,8 +66,7 @@
          user-account (first user-accounts)
         ]
         (if (= 1 (count user-accounts))
-          (account-retrieve-id (int (get (first user-accounts) "USER_ID")) request)
-;          (response/response {:user-account user-account :keys (keys user-account) :key (first(keys user-account)) :f (:USER_ID user-account)} )
+          (account-retrieve-id (int ((first user-accounts) :USER_ID)) request)
           (response/response {:error "Invalid user name"})
         )
       )
