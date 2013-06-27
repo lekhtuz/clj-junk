@@ -26,7 +26,7 @@
   (if
     (nil? *spring-context*)
     nil
-    (. *spring-context* getBean name)
+    (.getBean *spring-context* name)
   )
 )
 
