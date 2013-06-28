@@ -2,8 +2,12 @@
   (:require [hiccup.def :refer [defhtml]] 
             [hiccup.page :refer [include-css]]))
        
-(defhtml common [& body]  
-  [:head
-   [:title "Welcome to mgrapi"]
-   (include-css "/css/screen.css")]
-  [:body body])
+(defhtml common [& body]
+  [:html
+    [:head
+      [:title "Welcome to mgrapi"]
+      (include-css "/css/screen.css")
+    ]
+    [:body body]
+  ]
+)

@@ -19,11 +19,12 @@
 )
 
 (defn home [request] 
-  (layout/common "<h1>This is the home page</h1>")
+  (log/info "home page called")
+  (response/resource-response "aaa.html")
 )
 
 (defn print-map [map] 
-  (layout/common (with-out-str (pprint map)))
+  (layout/common (str "<code>" (with-out-str (pprint map)) "</code>"))
 )
 
 ;(defmethod from-java java.util.Date [instance]
@@ -47,12 +48,13 @@
 )
 
 (defn- account-retrieve-id [id]
+  (log/info "deep-bean started. id = " id)
   (try
 	  (let
 	    [
 	     user-account (deep-bean (.getUserAccount spring/account-manager (Integer. id)))
 	    ]
-      (log/info "deep-bean returned. user-account =" user-account)
+      (log/info "deep-bean returned. user-account = " user-account)
       (if (nil? user-account)
         (create-error-response (HttpServletResponse/SC_NOT_FOUND) (str "Account " id " does not exist"))
         (response/response user-account)
@@ -66,6 +68,7 @@
 )
 
 (defn- account-retrieve-login [login]
+  (log/info "account-retrieve-login started. login = " login)
 	(let
 	  [
      sc (SearchCriterion. "userName" (SearchCriterion/EQUAL) login)
@@ -87,13 +90,22 @@
 )
 
 (defn- recovery-info-create [body]
-  (let
-    [
-     recovery-info (data/to-java RecoveryInfo body)
-     recovery-info (.createRecoveryRecord spring/account-manager recovery-info)
-    ]
-    (log/info "recovery-info-create: recovery-info =" recovery-info)
-    (print-map body)
+  (log/info "recovery-info-create started. body = " body)
+  (try
+	  (let
+	    [
+	     recovery-info (data/to-java RecoveryInfo body)
+	     recovery-info (.createRecoveryRecord spring/account-manager recovery-info)
+	    ]
+	    (log/info "recovery-info-create: recovery-info =" recovery-info)
+      (if (nil? recovery-info)
+        (create-error-response (HttpServletResponse/SC_BAD_REQUEST) "Unable to save a RecoveryInfo object. Possible reason is invalid userId.")
+        (response/response (deep-bean recovery-info))
+      )
+	  )
+    (catch IllegalArgumentException e
+      (create-error-response (HttpServletResponse/SC_BAD_REQUEST) "Unable to construct a RecoveryInfo object using provided json data. Possible reasons are property name and/or type mismatch.")
+    )
   )
 )
 
