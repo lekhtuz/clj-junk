@@ -1,0 +1,23 @@
+<html>
+	<body>
+		<h1>The following URLs are supported</h1>
+		<ul>
+			<li>/test/:id - print the request map.
+				<form methid="GET">
+					id: <input type="text" name="id"><br>
+					query string: <input type="text" name="qs"><br>
+					<input type="submit" onclick="location.href='/test/' + this.form.id.value + '?' + this.form.qs.value; return(false);">
+				</form>
+			<li>/account/id/:id - retrieve eRights account by id
+				<form methid="GET">
+					id: <input type="text" name="id"><br>
+					<input type="submit" onclick="location.href='/account/id/' + this.form.id.value; return(false);">
+				</form>
+			<li>/account/login/:login - retrieve eRights account by login
+				<form methid="GET">
+					login: <input type="text" name="login"><br>
+					<input type="submit" onclick="location.href='/account/login/' + this.form.login.value; return(false);">
+				</form>
+		</ul>
+	</body>
+</html>

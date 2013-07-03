@@ -4,12 +4,13 @@
     [compojure.handler :as handler]
     [compojure.route :as route]
     [mgrapi.spring :as spring]
+    [mgrapi.routes.home :as home]
     [ring.middleware.json :as json]
     [ring.middleware.resource :as resource]
+    [ring.middleware.file-info :as file-info]
   )
 
-  (:require [ring.middleware.file-info :refer [wrap-file-info]]
-            [hiccup.middleware :refer [wrap-base-url]]
+  (:require [hiccup.middleware :refer [wrap-base-url]]
             [mgrapi.routes.home :refer [home-routes]]
   )
 )
@@ -35,14 +36,14 @@
   (route/not-found "Not Found"))
 
 (def app 
-  (handler/site (routes home-routes app-routes))
+  (handler/site (routes home/home-routes app-routes))
 )
 
 (def war-handler 
   (-> app    
     (wrap-resource "public") 
     (wrap-base-url)
-    (wrap-file-info)
+    (file-info/wrap-file-info)
     (json/wrap-json-response)
     (json/wrap-json-body)
   )

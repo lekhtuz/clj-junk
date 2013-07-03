@@ -208,5 +208,5 @@
 
 	<bean id="subscriptionInfoTransformer" class="com.emeta.cu.business.transformer.impl.SubscriptionInfoTransformerImpl"/>
 	<bean id="chargeInfoTransformer" class="com.emeta.cu.business.transformer.impl.ChargeInfoTransformerImpl" />
-
+	<bean id="giftCertificateTransformer" class="com.emeta.cu.business.transformer.impl.GiftCertificateTransformerImpl"/>
 </beans>
