@@ -27,61 +27,65 @@
   (layout/common (str "<code>" (with-out-str (pprint map)) "</code>"))
 )
 
-(defmethod from-java java.sql.Date [instance]
-  { :time (.getTime instance) }
-)
-
-(defmethod to-java [java.sql.Date clojure.lang.APersistentMap] [clazz props]
-  (.setTime clazz (props :time))
-)
-
+; This method is necessary to circumvent bad handling of java.sql.Date
 (defmethod from-java java.util.Date [instance]
   { :time (.getTime instance) }
 )
 
+; This method is necessary to circumvent bad handling of java.sql.Date
 (defmethod to-java [java.util.Date clojure.lang.APersistentMap] [clazz props]
   (.setTime clazz (props :time))
 )
 
-;(defmethod from-java com.emeta.cu.business.domain.Money [instance]
-;  { :currencyCode (.getCurrencyCode instance) }
-;)
-
 (defn- doctor-subscription-info [sub]
+  (log/info "doctor-subscription-info called. sub =" sub)
   (doto sub
-    (.setStartDate nil)
-    (.setExpirationDate nil)
-    (.setRenewalDate nil)
-    (.setTerminatedDate nil)
+;    (.setStartDate nil)
+;    (.setExpirationDate nil)
+;    (.setRenewalDate nil)
+;    (.setTerminatedDate nil)
+;    (.setCreditCard nil)
+;    (.setCurrentLicense nil)
+;    (.setCurrentCharge nil)
+;    (.setMyAccountLicenseFormatter nil)
     (.setParent nil)
-    (.setCreditCard nil)
-    (.setCurrentLicense nil)
-    (.setCurrentCharge nil)
-    (.setMyAccountLicenseFormatter nil)
-    (.setChildSubscriptions nil)
-    (.setGiftCertificate nil)
-    (.setAmountPaid nil)
-    (.setRenewalPrice nil)
+;    (.setChildSubscriptions nil)
+;    (.setGiftCertificate nil)
+;    (.setAmountPaid nil)
+;    (.setRenewalPrice nil)
   )
+  (log/info "doctor-subscription-info ended. ----------------------------------------------------------")
+)
+
+(defn- doctor-user-account [obj]
+  (log/info "doctor-user-account called. obj =" obj)
+  (.setLicenseActiveProductSubscriptionMap obj nil)
+  (doseq
+    [
+      sub (flatten 
+            (concat
+              (.getSubscriptions obj) 
+              (reduce into [] (vals (.getActiveProductSubscriptionMap obj)))
+;              (reduce into [] (vals (.getLicenseActiveProductSubscriptionMap obj)))
+            )
+          )
+    ]
+    (doctor-subscription-info sub)
+  )
+  (log/info "doctor-user-account ended. ---------------------------------------------------------------")
 )
 
 (defn- doctor-bean [obj]
-  (log/info "doctor-bean called. obj = " obj)
+  (log/info "doctor-bean called. obj =" obj)
+
   (if (instance? UserAccount obj)
-    (doseq [
-            sub (flatten (concat
-                  (.getSubscriptions obj) 
-                  (vals (.getActiveProductSubscriptionMap obj))
-                  (vals (.getLicenseActiveProductSubscriptionMap obj))))
-           ] 
-      (doctor-subscription-info sub)
-    )
+    (doctor-user-account obj)
   )
-;  (log/info "doctor-bean ended. obj = " obj)
+  (log/info "doctor-bean ended. -----------------------------------------------------------------------")
 )
 
 (defn- deep-bean [bean]
-  (log/info "deep-bean called. bean=" bean)
+  (log/info "deep-bean called. bean =" bean)
   (doctor-bean bean)
   (data/from-java bean)
 )
@@ -93,7 +97,7 @@
 )
 
 (defn- account-retrieve-id-internal "input: numeric id, output: UserAccount object as a map" [id]
-  (log/info "account-retrieve-id-internal started. id = " id)
+  (log/info "account-retrieve-id-internal started. id =" id)
 	(deep-bean (.getUserAccount spring/account-manager (Integer. id)))
 )
 
@@ -104,8 +108,8 @@
 	    [
 	     user-account (account-retrieve-id-internal id)
 	    ]
-      (log/info "account-retrieve-id-internal returned. user-account = " user-account)
-      (log/info "account-retrieve-id-internal returned. subscriptions = " (user-account :subscriptions))
+      (log/info "account-retrieve-id: account-retrieve-id-internal returned. user-account = " user-account)
+      (log/info "account-retrieve-id: account-retrieve-id-internal returned. subscriptions = " (user-account :subscriptions))
       (if (nil? user-account)
         (create-error-response (HttpServletResponse/SC_NOT_FOUND) (str "Account " id " does not exist"))
         (response/response user-account)
@@ -118,8 +122,8 @@
   )
 )
 
-(defn- account-retrieve-login-internal "input: login, output: UserAccount object as a map" [login]
-  (log/info "account-retrieve-login-internal started. login = " login)
+(defn- account-retrieve-userid-by-login "input: login, output: user-id" [login]
+  (log/info "account-retrieve-userid-by-login started. login = " login)
 	(let
 	  [
      sc (SearchCriterion. "userName" (SearchCriterion/EQUAL) login)
@@ -127,9 +131,9 @@
      user-accounts (.queryForUser spring/search-manager search)
      user-account (first user-accounts)
     ]
-    (log/info "account-retrieve-login-internal: user-account = " user-account)
+    (log/info "account-retrieve-userid-by-login: user-account = " user-account)
     (if (= 1 (count user-accounts))
-      (account-retrieve-id (int (.get user-account "USER_ID")))
+      (int (.get user-account "USER_ID"))
     )
   )
 )
@@ -138,11 +142,11 @@
   (log/info "account-retrieve-login started. login = " login)
 	(let
 	  [
-      user-account (account-retrieve-login-internal login)
+      user-id (account-retrieve-userid-by-login login)
     ]
-    (if (nil? user-account)
-      (account-retrieve-id (int (.get user-account "USER_ID")))
+    (if (nil? user-id)
       (create-error-response (HttpServletResponse/SC_NOT_FOUND) (str "Invalid user name - " login))
+      (account-retrieve-id user-id)
     )
   )
 )
@@ -160,14 +164,12 @@
                      )
 	    ]
 	    (log/info "recovery-info-create: email = " email "userName = " user-name)
-      (if-let 
-        [
-          user-account (account-retrieve-login-internal user-name)
-        ]
+      ; This function is not finished, because I switched to duplicate account service. Code below will throw NPE, because recovery-info is null.
+      (if
         (not (nil? user-name))
-        (.setUserId recovery-info 1)
+        (.setUserId recovery-info (account-retrieve-userid-by-login user-name))
       )
-     
+
      (if (nil? recovery-info)
         (create-error-response (HttpServletResponse/SC_BAD_REQUEST) "Unable to save a RecoveryInfo object. Possible reason is invalid userId.")
         (response/response (deep-bean recovery-info))
