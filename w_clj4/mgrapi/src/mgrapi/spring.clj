@@ -30,6 +30,10 @@
   )
 )
 
+(defn get-erights-cce []
+  (get-bean "erightsCommandExecutionEnvironment")
+)
+
 (defmacro typed-bean [ctx key]
   (let [rtnval (gensym "rtnval") cls (gensym "cls") ]
     `(fn []

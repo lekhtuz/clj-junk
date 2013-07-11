@@ -1,6 +1,6 @@
 (ns mgrapi.routes.home
   (:use
-    [mgrapi.spring :as spring :only (account-manager search-manager)]
+    [mgrapi.spring :as spring :only (get-erights-cce account-manager search-manager)]
     [mgrapi.views.layout :as layout]
     [clojure.java.data :as data]
     [clojure.tools.logging :as log]
@@ -11,9 +11,11 @@
   )
 
   (:import
-    [com.emeta.cu.business.domain Money RecoveryInfo SubscriptionInfo UserAccount]
+    [com.emeta.cu.business.domain Money RecoveryInfo SubscriptionInfo UserAccount UserSearchRequest]
+    [com.emeta.api.exceptions NoConnectionsAvailableException]
     [com.emeta.api.search SearchCriterion]
     [com.emeta.api.objects Search]
+    [com.emeta.cu.business.manager.command ValidateUserInfoCommand]
     [javax.servlet.http HttpServletResponse]
   )
 )
@@ -118,6 +120,10 @@
       (log/info "NumberFormatException: account id is not a valid number")
       (create-error-response (HttpServletResponse/SC_BAD_REQUEST) (str "Invalid account id - " id))
     )
+    (catch NoConnectionsAvailableException e
+      (log/info "NoConnectionsAvailableException: unable to contact eRights server")
+      (create-error-response (HttpServletResponse/SC_BAD_REQUEST) (str "Unable to contact eRights server - " e))
+    )
   )
 )
 
@@ -200,6 +206,15 @@
   )
 )
 
+(def bad-emails
+  '("nobody@nowhere.com", "t-martje@consumer.org")
+)
+
+; if email is in bad-emails list, return nil, otherwise return email
+(defn- check-email [email]
+  (if (not (some #{email} bad-emails)) email)
+)
+
 (defn- check-duplicate-subscription [params]
   (log/info "check-duplicate-subscription started. body = " params)
   (let
@@ -207,10 +222,19 @@
      first-name (params :firstName)
      last-name (params :lastName)
      username (params :userName)
-     email (params :email)
+     email (check-email (params :email))
      product-context (params :productContext)
+     userSearchRequest (doto (UserSearchRequest.)
+                         (.setFirstName first-name)
+                         (.setLastName last-name)
+                         (.setEmail email)
+                         (.setProductContext product-context)
+                       )
+     command (ValidateUserInfoCommand. username userSearchRequest (boolean email) "asyncUserSearchDAO")
+     return-object (.executeCommand (spring/get-erights-cce) command)
     ]
-    (response/response { :username-exists true, :active-subscriptions-exists true, :search-user-active false })
+;    (response/response { :username-exists true, :active-subscriptions-exists true, :search-user-active false })
+    (response/response (deep-bean (.getReturnObject return-object)))
   )
 )
 
@@ -219,7 +243,7 @@
   (comp/GET "/test/:id" request (print-map request))
   (comp/GET "/account/id/:id" request (account-retrieve-id ((request :params) :id)))
   (comp/GET "/account/login/:login" request (account-retrieve-login ((request :params) :login)))
-  (comp/GET "/checkduplicate" request (check-duplicate-subscription (request :params)))
+  (comp/GET "/checkduplicateaccount" request (check-duplicate-subscription (request :params)))
   (comp/POST "/recovery-info" request (recovery-info-create (request :body))); this handler is not finished. do not call!!!
   (comp/ANY "/*" request
       (create-error-response (HttpServletResponse/SC_NOT_FOUND) "Page not found. 404 returned.")
