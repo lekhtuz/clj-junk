@@ -109,7 +109,6 @@
 	     user-account (account-retrieve-id-internal id)
 	    ]
       (log/info "account-retrieve-id: account-retrieve-id-internal returned. user-account = " user-account)
-      (log/info "account-retrieve-id: account-retrieve-id-internal returned. subscriptions = " (user-account :subscriptions))
       (if (nil? user-account)
         (create-error-response (HttpServletResponse/SC_NOT_FOUND) (str "Account " id " does not exist"))
         (response/response user-account)
@@ -201,12 +200,27 @@
   )
 )
 
+(defn- check-duplicate-subscription [params]
+  (log/info "check-duplicate-subscription started. body = " params)
+  (let
+    [
+     first-name (params :firstName)
+     last-name (params :lastName)
+     username (params :userName)
+     email (params :email)
+     product-context (params :productContext)
+    ]
+    (response/response { :username-exists true, :active-subscriptions-exists true, :search-user-active false })
+  )
+)
+
 (comp/defroutes home-routes
   (comp/GET "/" request (home request))
   (comp/GET "/test/:id" request (print-map request))
   (comp/GET "/account/id/:id" request (account-retrieve-id ((request :params) :id)))
   (comp/GET "/account/login/:login" request (account-retrieve-login ((request :params) :login)))
-  (comp/POST "/recovery-info" request (recovery-info-create (request :body)))
+  (comp/GET "/checkduplicate" request (check-duplicate-subscription (request :params)))
+  (comp/POST "/recovery-info" request (recovery-info-create (request :body))); this handler is not finished. do not call!!!
   (comp/ANY "/*" request
       (create-error-response (HttpServletResponse/SC_NOT_FOUND) "Page not found. 404 returned.")
   )

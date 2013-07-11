@@ -1,23 +1,87 @@
 <html>
 	<body>
 		<h1>The following URLs are supported</h1>
-		<ul>
-			<li>/test/:id - print the request map.
-				<form methid="GET">
-					id: <input type="text" name="id"><br>
-					query string: <input type="text" name="qs"><br>
-					<input type="submit" onclick="location.href='/test/' + this.form.id.value + '?' + this.form.qs.value; return(false);">
-				</form>
-			<li>/account/id/:id - retrieve eRights account by id
-				<form methid="GET">
-					id: <input type="text" name="id"><br>
-					<input type="submit" onclick="location.href='/account/id/' + this.form.id.value; return(false);">
-				</form>
-			<li>/account/login/:login - retrieve eRights account by login
-				<form methid="GET">
-					login: <input type="text" name="login"><br>
-					<input type="submit" onclick="location.href='/account/login/' + this.form.login.value; return(false);">
-				</form>
-		</ul>
+		<form method="GET">
+			<table>
+				<tr>
+					<td colspan="2">/test/:id - print the request map</td>
+				</tr>
+				<tr>
+					<td>Id</td><td><input type="text" name="id"></td>
+				</tr>
+				<tr>
+					<td>Query string</td><td><input type="text" name="qs"></td>
+				</tr>
+				<tr>
+					<td colspan="2">
+						<input type="Submit" onclick="location.href='/test/' + this.form.id.value + '?' + this.form.qs.value; return(false);">
+					</td>
+				</tr>
+			</table>
+		</form>
+		<form method="GET">
+			<table>
+				<tr>
+					<td colspan="2">/account/id/:id - retrieve eRights account by id</td>
+				</tr>
+				<tr>
+					<td>Id</td><td><input type="text" name="id"></td>
+				</tr>
+				<tr>
+					<td colspan="2">
+						<input type="Submit" onclick="location.href='/account/id/' + this.form.id.value; return(false);">
+					</td>
+				</tr>
+			</table>
+		</form>
+		<form method="GET">
+			<table>
+				<tr>
+					<td colspan="2">/account/login/:login - retrieve eRights account by login</td>
+				</tr>
+				<tr>
+					<td>Login</td><td><input type="login" name="login"></td>
+				</tr>
+				<tr>
+					<td colspan="2">
+						<input type="Submit" onclick="location.href='/account/login/' + this.form.login.value; return(false);">
+					</td>
+				</tr>
+			</table>
+		</form>
+		<form method="GET" action="/checkduplicate">
+			<table>
+				<tr>
+					<td colspan="2">/checkduplicate - check duplicate subscription</td>
+				</tr>
+				<tr>
+					<td>First name</td><td><input type="text" name="firstName"></td>
+				</tr>
+				<tr>
+					<td>Last name</td><td><input type="text" name="lastName"></td>
+				</tr>
+				<tr>
+					<td>Login</td><td><input type="text" name="userName"></td>
+				</tr>
+				<tr>
+					<td>Email</td><td><input type="text" name="email"></td>
+				</tr>
+				<tr>
+					<td>Product</td>
+					<td><select name="productContext">
+							<option selected="selected" value="CRO">CRO</option>
+							<option value="CARP">CARP</option>
+							<option value="OH">OH</option>
+							<option value="MA">MA</option>
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<td colspan="2">
+						<input type="Submit">
+					</td>
+				</tr>
+			</table>
+		</form>
 	</body>
 </html>
