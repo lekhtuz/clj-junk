@@ -5,16 +5,16 @@
     [clojure.java.data :as data]
     [clojure.tools.logging :as log]
     [clojure.pprint]
-    [compojure.core :as comp :only (GET ANY)]
+    [compojure.core :as comp :only (GET ANY context)]
     [compojure.route :as route :only (not-found)]
     [ring.util.response :as response :only [response]]
   )
 
   (:import
-    [com.emeta.cu.business.domain Money RecoveryInfo SubscriptionInfo UserAccount UserSearchRequest]
-    [com.emeta.api.exceptions NoConnectionsAvailableException]
+    [com.emeta.erweb.components UncheckedException]
     [com.emeta.api.search SearchCriterion]
     [com.emeta.api.objects Search]
+    [com.emeta.cu.business.domain Money RecoveryInfo SubscriptionInfo UserAccount UserSearchRequest]
     [com.emeta.cu.business.manager.command ValidateUserInfoCommand]
     [javax.servlet.http HttpServletResponse]
   )
@@ -36,7 +36,7 @@
 
 ; This method is necessary to circumvent bad handling of java.sql.Date
 (defmethod to-java [java.util.Date clojure.lang.APersistentMap] [clazz props]
-  (.setTime clazz (props :time))
+  (.setTime clazz (:time props))
 )
 
 (defn- doctor-subscription-info [sub]
@@ -92,9 +92,26 @@
   (data/from-java bean)
 )
 
-(defn- create-error-response [status-code message]
+(defn create-error-response [status-code message]
   (-> (response/response {:error message})
       (response/status status-code)
+  )
+)
+
+(defn create-json-response [response-map]
+  (-> (response/response response-map)
+      (response/content-type "application/json")
+  )
+)
+
+; There are 3 layers - UncheckedException, which wraps RuntimeException, which wraps TheRealException
+; This function is only called with UncheckedException, but I will check for it just in case.
+(defn- create-erights-error-response [^UncheckedException e]
+  (log/warn "create-erights-error-response: exception thrown. e =" e (newline) (.printStackTrace e))
+  (if (and (instance? UncheckedException e) (instance? RuntimeException (.getCause e)))
+    (create-erights-error-response (.getCause (.getCause e)))
+    ; Consider changing status code below to something more appropriate, as this is not a user error condition.
+    (create-error-response (HttpServletResponse/SC_BAD_REQUEST) (str "Exception: " e))
   )
 )
 
@@ -104,7 +121,7 @@
 )
 
 (defn- account-retrieve-id "input: numeric id, output: http response" [id]
-  (log/info "account-retrieve-id started. id = " id)
+  (log/info "account-retrieve-id started. id =" id)
   (try
 	  (let
 	    [
@@ -113,21 +130,18 @@
       (log/info "account-retrieve-id: account-retrieve-id-internal returned. user-account = " user-account)
       (if (nil? user-account)
         (create-error-response (HttpServletResponse/SC_NOT_FOUND) (str "Account " id " does not exist"))
-        (response/response user-account)
+        (create-json-response user-account)
       )
     )
     (catch NumberFormatException e
       (log/info "NumberFormatException: account id is not a valid number")
       (create-error-response (HttpServletResponse/SC_BAD_REQUEST) (str "Invalid account id - " id))
     )
-    (catch NoConnectionsAvailableException e
-      (log/info "NoConnectionsAvailableException: unable to contact eRights server")
-      (create-error-response (HttpServletResponse/SC_BAD_REQUEST) (str "Unable to contact eRights server - " e))
-    )
+    (catch UncheckedException e (create-erights-error-response e))
   )
 )
 
-(defn- account-retrieve-userid-by-login "input: login, output: user-id" [login]
+(defn- account-retrieve-userid-by-login "input: login, output: user-id" [^String login]
   (log/info "account-retrieve-userid-by-login started. login = " login)
 	(let
 	  [
@@ -143,25 +157,29 @@
   )
 )
 
-(defn- account-retrieve-login "input: login, output: http response" [login]
+(defn- account-retrieve-login "input: login, output: http response" [^String login]
   (log/info "account-retrieve-login started. login = " login)
-	(let
-	  [
-      user-id (account-retrieve-userid-by-login login)
-    ]
-    (if (nil? user-id)
-      (create-error-response (HttpServletResponse/SC_NOT_FOUND) (str "Invalid user name - " login))
-      (account-retrieve-id user-id)
-    )
+  (try
+		(let
+		  [
+	      user-id (account-retrieve-userid-by-login login)
+	    ]
+	    (if (nil? user-id)
+	      (create-error-response (HttpServletResponse/SC_NOT_FOUND) (str "Invalid user name - " login))
+	      (account-retrieve-id user-id)
+	    )
+	  )
+    (catch UncheckedException e (create-erights-error-response e))
   )
 )
 
+; This handler is not finished. do not call!!!
 (defn- recovery-info-create [body]
   (log/info "recovery-info-create started. body = " body)
   (try
 	  (let
 	    [
-       email (body :email)
+       email (:email body)
        user-name (body :userName)
        recovery-info (doto (RecoveryInfo.)
                        (.setEmail email)
@@ -177,27 +195,7 @@
 
      (if (nil? recovery-info)
         (create-error-response (HttpServletResponse/SC_BAD_REQUEST) "Unable to save a RecoveryInfo object. Possible reason is invalid userId.")
-        (response/response (deep-bean recovery-info))
-      )
-	  )
-    (catch IllegalArgumentException e
-      (create-error-response (HttpServletResponse/SC_BAD_REQUEST) "Unable to construct a RecoveryInfo object using provided json data. Possible reasons are property name and/or type mismatch.")
-    )
-  )
-)
-
-(defn- recovery-info-create [body]
-  (log/info "recovery-info-create started. body = " body)
-  (try
-	  (let
-	    [
-	     recovery-info (data/to-java RecoveryInfo body)
-	     recovery-info (.createRecoveryRecord spring/account-manager recovery-info)
-	    ]
-	    (log/info "recovery-info-create: recovery-info =" recovery-info)
-      (if (nil? recovery-info)
-        (create-error-response (HttpServletResponse/SC_BAD_REQUEST) "Unable to save a RecoveryInfo object. Possible reason is invalid userId.")
-        (response/response (deep-bean recovery-info))
+        (create-json-response (deep-bean recovery-info))
       )
 	  )
     (catch IllegalArgumentException e
@@ -211,40 +209,52 @@
 )
 
 ; if email is in bad-emails list, return nil, otherwise return email
-(defn- check-email [email]
+(defn- check-email-against-blacklist [^String email]
   (if (not (some #{email} bad-emails)) email)
 )
 
-(defn- check-duplicate-subscription [params]
-  (log/info "check-duplicate-subscription started. body = " params)
-  (let
-    [
-     first-name (params :firstName)
-     last-name (params :lastName)
-     username (params :userName)
-     email (check-email (params :email))
-     product-context (params :productContext)
-     userSearchRequest (doto (UserSearchRequest.)
-                         (.setFirstName first-name)
-                         (.setLastName last-name)
-                         (.setEmail email)
-                         (.setProductContext product-context)
-                       )
-     command (ValidateUserInfoCommand. username userSearchRequest (boolean email) "asyncUserSearchDAO")
-     return-object (.executeCommand (spring/get-erights-cce) command)
-    ]
-;    (response/response { :username-exists true, :active-subscriptions-exists true, :search-user-active false })
-    (response/response (deep-bean (.getReturnObject return-object)))
+(defn- check-duplicate-subscription [first-name last-name username email product-context]
+  (log/info "check-duplicate-subscription started. first-name =" first-name ", last_name =" last-name ", username =" username ", email =" email ", product-context =" product-context)
+  (try
+	  (let
+	    [
+	     userSearchRequest (doto (UserSearchRequest.)
+	                         (.setFirstName first-name)
+	                         (.setLastName last-name)
+	                         (.setEmail (check-email-against-blacklist email))
+	                         (.setProductContext product-context)
+	                       )
+	     command (ValidateUserInfoCommand. username userSearchRequest (boolean email) "asyncUserSearchDAO")
+	     command-response (.executeCommand (spring/get-erights-cce) command)
+	     return-object (into {} (.getReturnObject command-response))
+	    ]
+	    (log/info "check-duplicate-subscription: return-object =" return-object)
+	    (if (.isValidResponse command-response)
+	      (create-json-response { 
+	                              :username-exists (< 0 (count (return-object "accountExistsList"))),
+	                              :active-subscriptions-exists (< 0 (count (return-object "accountSubscriptionList"))),
+	                              :search-user-active (< 0 (count (return-object "searchUserActive")))
+	                            }
+	      )
+        ; Consider changing status code below to something more appropriate, as this is not a user error condition.
+	      (create-error-response (HttpServletResponse/SC_BAD_REQUEST) "Unable to check for a duplicate subscription. Command did not return a valid response.")
+	    )
+	  )
+    (catch UncheckedException e (create-erights-error-response e))
   )
+)
+
+(comp/defroutes account-routes
+  (comp/GET ["/id/:id", :id "[0-9]+"] [id] (account-retrieve-id id))
+  (comp/GET "/login/:login" [login] (account-retrieve-login login))
 )
 
 (comp/defroutes home-routes
   (comp/GET "/" request (home request))
+  (comp/context "/account" [] account-routes)
   (comp/GET "/test/:id" request (print-map request))
-  (comp/GET "/account/id/:id" request (account-retrieve-id ((request :params) :id)))
-  (comp/GET "/account/login/:login" request (account-retrieve-login ((request :params) :login)))
-  (comp/GET "/checkduplicateaccount" request (check-duplicate-subscription (request :params)))
-  (comp/POST "/recovery-info" request (recovery-info-create (request :body))); this handler is not finished. do not call!!!
+  (comp/GET "/checkduplicateaccount" [firstName lastName username email productContext] (check-duplicate-subscription firstName lastName username email productContext))
+  (comp/POST "/recovery-info" request (recovery-info-create ( :body request))); this handler is not finished. do not call!!!
   (comp/ANY "/*" request
       (create-error-response (HttpServletResponse/SC_NOT_FOUND) "Page not found. 404 returned.")
   )
