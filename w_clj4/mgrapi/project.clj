@@ -12,11 +12,12 @@
 
                  ; Various third-party jars
                  [commons-beanutils "1.8.3"]
+                 [commons-collections "3.2.1"]
                  [commons-primitives "1.0"]
                  [commons-lang "2.6"] ; latest version is 3.1, but pwiec uses 2.6
-                 [commons-logging "1.0.4"] ; latest version is 1.1.1, but erights uses 1.0.4
-                 [net.sf.ehcache/ehcache-core "2.6.5"]
-                 [org.springframework/spring-context "3.2.3.RELEASE"]
+                 [commons-logging "1.0.4"] ; latest version is 1.1.3, but erights uses 1.0.4
+                 [net.sf.ehcache/ehcache-core "2.6.6"] ; latest version is 2.7.3, but http://repo1.maven.org/maven2 repository does not have it yet
+                 [org.springframework/spring-context "3.2.4.RELEASE"]
                  [org.slf4j/slf4j-api "1.7.2"]
                  [org.slf4j/slf4j-simple "1.7.2"]
 

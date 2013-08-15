@@ -13,4 +13,17 @@
 	</bean>
 
 	<bean id="searchManager" class="com.emeta.cu.business.manager.impl.SearchManagerImpl"/>
+
+	<bean id="userSearchManager" class="com.emeta.cu.business.manager.impl.UserSearchManagerImpl">
+		<property name="listOfEmailsToAvoidActiveSubCheck">
+			<list>
+				<value>nobody@nowhere.com</value>
+				<value>t-martje@consumer.org</value>
+			</list>
+		</property>
+		<!--
+			possible values (see pwiec/comp-businesslayer/src/conf/ibatis/userSearch.xml) asyncUserSearchDAO userSearchDAO
+		-->
+		<property name="activeSubscriptionUserSearchDAOBean" value="asyncUserSearchDAO"/>
+	</bean>
 </beans>

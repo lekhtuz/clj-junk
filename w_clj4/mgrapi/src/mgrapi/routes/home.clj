@@ -1,6 +1,6 @@
 (ns mgrapi.routes.home
   (:use
-    [mgrapi.spring :as spring :only (get-erights-cce account-manager search-manager)]
+    [mgrapi.spring :as spring :only (get-erights-cce account-manager search-manager user-search-manager)]
     [mgrapi.views.layout :as layout]
     [clojure.java.data :as data]
     [clojure.tools.logging :as log]
@@ -15,7 +15,6 @@
     [com.emeta.api.search SearchCriterion]
     [com.emeta.api.objects Search]
     [com.emeta.cu.business.domain Money RecoveryInfo SubscriptionInfo UserAccount UserSearchRequest]
-    [com.emeta.cu.business.manager.command ValidateUserInfoCommand]
     [javax.servlet.http HttpServletResponse]
   )
 )
@@ -213,6 +212,14 @@
   (if (not (some #{email} bad-emails)) email)
 )
 
+(defn- check-user-exists [username]
+  (log/info "check-user-exists started. username =" username)
+  (try
+    (create-json-response { :userNameExists (.validateUserInfo user-search-manager username) })
+    (catch UncheckedException e (create-erights-error-response e))
+  )
+)
+
 (defn- check-duplicate-subscription [first-name last-name username email product-context]
   (log/info "check-duplicate-subscription started. first-name =" first-name ", last_name =" last-name ", username =" username ", email =" email ", product-context =" product-context)
   (try
@@ -224,20 +231,18 @@
 	                         (.setEmail (check-email-against-blacklist email))
 	                         (.setProductContext product-context)
 	                       )
-	     command (ValidateUserInfoCommand. username userSearchRequest (boolean email) "asyncUserSearchDAO")
-	     command-response (.executeCommand (spring/get-erights-cce) command)
-	     return-object (into {} (.getReturnObject command-response))
+	     return-object (into {} (.validateUserInfo user-search-manager userSearchRequest))
 	    ]
 	    (log/info "check-duplicate-subscription: return-object =" return-object)
-	    (if (.isValidResponse command-response)
-	      (create-json-response { 
+	    (if (empty? return-object)
+        ; Consider changing status code below to something more appropriate, as this is not a user error condition.
+	      (create-error-response (HttpServletResponse/SC_BAD_REQUEST) "Unable to check for a duplicate subscription. Command did not return a valid response.")
+	      (create-json-response {
 	                              :username-exists (< 0 (count (return-object "accountExistsList"))),
 	                              :active-subscriptions-exists (< 0 (count (return-object "accountSubscriptionList"))),
 	                              :search-user-active (< 0 (count (return-object "searchUserActive")))
 	                            }
 	      )
-        ; Consider changing status code below to something more appropriate, as this is not a user error condition.
-	      (create-error-response (HttpServletResponse/SC_BAD_REQUEST) "Unable to check for a duplicate subscription. Command did not return a valid response.")
 	    )
 	  )
     (catch UncheckedException e (create-erights-error-response e))
@@ -253,6 +258,7 @@
   (comp/GET "/" request (home request))
   (comp/context "/account" [] account-routes)
   (comp/GET "/test/:id" request (print-map request))
+  (comp/GET "/user/exists" [userName] (check-user-exists userName))
   (comp/GET "/checkduplicateaccount" [firstName lastName username email productContext] (check-duplicate-subscription firstName lastName username email productContext))
   (comp/POST "/recovery-info" request (recovery-info-create ( :body request))); this handler is not finished. do not call!!!
   (comp/ANY "/*" request

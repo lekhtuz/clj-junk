@@ -33,11 +33,13 @@
 )
 
 (defn destroy []
-  (log/info "mgrapi is shutting down"))
+  (log/info "mgrapi is shutting down")
+)
   
 (comp/defroutes app-routes
   (route/resources "/")
-  (route/not-found "Not Found"))
+  (route/not-found "Not Found")
+)
 
 (def app 
   (handler/site (routes home/home-routes app-routes))
@@ -58,7 +60,6 @@
 ; This function returns the new body consisting with one the following at the top level:
 ; 1. "response" with the original body as the value if "error" is not present
 ; 2. "error" if it was present
-
 (defn- process-json-response-body [body]
   (log/info "process-json-response-body: ----------- started. body =" (with-out-str (pprint body)))
   (if (nil? (:error body))
@@ -67,13 +68,24 @@
   )
 )
 
+;(def- protected-routes
+;  '("/account/id", "/account/login", "/user/exist")
+;)
+
+; Check against the list of routes which require request id. Since part of the route may be a variable,
+; it does not have to be exact match.
+; /account/id/12345 will match /account/id
+(defn- request-id-required-for-uri [uri]
+  false
+)
+
 ; This middleware has to be above wrap-json-response
 (defn wrap-pwiec
   [handler]
   (fn [request]
     (log/info "wrap-pwiec: ----------- started")
     (let [request-id ((:query-params request) "requestId")]
-	    (if (request-id-valid? request-id)
+	    (if (or (not (request-id-required-for-uri (:uri request))) (request-id-valid? request-id))
 		    (let 
 		      [
 		        start-time (System/nanoTime)
@@ -84,10 +96,12 @@
 		      ]
           (log/info "wrap-pwiec: ----------- condition to call process-json-response-body (should be true)" (and (json-response? response) (map? response-body)))
 		      (if (and (json-response? response) (map? response-body))
-	          (assoc response :body (assoc (process-json-response-body response-body)
-                                     :duration duration
-                                     :requestId request-id
-                                     :status (:status response)
+	          (assoc response :body (merge 
+                                    (assoc (process-json-response-body response-body)
+                                      :duration duration
+                                      :status (:status response)
+                                    )
+                                    (if (nil? request-id) { } { :requestId request-id })
                                   )
             )
 		        response
