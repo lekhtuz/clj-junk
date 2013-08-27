@@ -1,6 +1,6 @@
 (ns mgrapi.routes.home
   (:use
-    [mgrapi.spring :as spring :only (get-erights-cce account-manager search-manager user-search-manager)]
+    [mgrapi.spring :as spring :only (account-manager search-manager user-search-manager)]
     [mgrapi.views.layout :as layout]
     [clojure.java.data :as data]
     [clojure.tools.logging :as log]
@@ -14,7 +14,7 @@
     [com.emeta.erweb.components UncheckedException]
     [com.emeta.api.search SearchCriterion]
     [com.emeta.api.objects Search]
-    [com.emeta.cu.business.domain Money RecoveryInfo SubscriptionInfo UserAccount UserSearchRequest]
+    [com.emeta.cu.business.domain RecoveryInfo SubscriptionInfo UserAccount UserSearchRequest]
     [javax.servlet.http HttpServletResponse]
   )
 )
@@ -60,7 +60,7 @@
 
 (defn- doctor-user-account [obj]
   (log/info "doctor-user-account called. obj =" obj)
-  (.setLicenseActiveProductSubscriptionMap obj nil)
+  (.setLicenseActiveProductSubscriptionMap obj nil);(into-array SubscriptionInfo ()))
   (doseq
     [
       sub (flatten 
@@ -220,15 +220,16 @@
   )
 )
 
-(defn- check-duplicate-subscription [first-name last-name username email product-context]
-  (log/info "check-duplicate-subscription started. first-name =" first-name ", last_name =" last-name ", username =" username ", email =" email ", product-context =" product-context)
+(defn- validate-user-info [first-name last-name username email product-context]
+  (log/info "validate-user-info started. first-name =" first-name ", last_name =" last-name ", username =" username ", email =" email ", product-context =" product-context)
   (try
 	  (let
 	    [
 	     userSearchRequest (doto (UserSearchRequest.)
 	                         (.setFirstName first-name)
 	                         (.setLastName last-name)
-	                         (.setEmail (check-email-against-blacklist email))
+	                         (.setUserName username)
+	                         (.setEmail email)
 	                         (.setProductContext product-context)
 	                       )
 	     return-object (into {} (.validateUserInfo user-search-manager userSearchRequest))
@@ -237,31 +238,41 @@
 	    (if (empty? return-object)
         ; Consider changing status code below to something more appropriate, as this is not a user error condition.
 	      (create-error-response (HttpServletResponse/SC_BAD_REQUEST) "Unable to check for a duplicate subscription. Command did not return a valid response.")
-	      (create-json-response {
-	                              :username-exists (< 0 (count (return-object "accountExistsList"))),
-	                              :active-subscriptions-exists (< 0 (count (return-object "accountSubscriptionList"))),
-	                              :search-user-active (< 0 (count (return-object "searchUserActive")))
-	                            }
+	      (create-json-response 
+          (merge
+            { :activeSubscriptionsExists (< 0 (count (return-object "accountSubscriptionList"))) }
+            (if (nil? (return-object "userNameExists")) {} { :usernameExists (return-object "userNameExists") })
+            (if (nil? (return-object "searchUserActiveAOL")) {} { :searchUserActiveAOL (return-object "searchUserActiveAOL") })
+	        )
 	      )
-	    )
+      )
 	  )
+    (catch IllegalArgumentException e (create-error-response (HttpServletResponse/SC_BAD_REQUEST) (.getMessage e)))
     (catch UncheckedException e (create-erights-error-response e))
   )
 )
 
+(defn- check-duplicate-subscription [first-name last-name email product-context]
+  (log/info "check-duplicate-subscription started. first-name =" first-name ", last_name =" last-name ", email =" email ", product-context =" product-context)
+  (validate-user-info first-name last-name nil email product-context)
+)
+
 (comp/defroutes account-routes
-  (comp/GET ["/id/:id", :id "[0-9]+"] [id] (account-retrieve-id id))
+  (comp/GET ["/id/:id", :id "[\\d]+"] [id] (account-retrieve-id id))
   (comp/GET "/login/:login" [login] (account-retrieve-login login))
 )
 
+(comp/defroutes user-routes
+  (comp/GET "/exists" [userName] (check-user-exists userName))
+  (comp/GET "/duplicatesub" [firstName lastName email productContext] (check-duplicate-subscription firstName lastName email productContext))
+  (comp/GET "/validateuserinfo" [firstName lastName userName email productContext] (validate-user-info firstName lastName userName email productContext))
+)
+
 (comp/defroutes home-routes
-  (comp/GET "/" request (home request))
   (comp/context "/account" [] account-routes)
+  (comp/context "/user" [] user-routes)
+  (comp/GET "/" request (home request))
   (comp/GET "/test/:id" request (print-map request))
-  (comp/GET "/user/exists" [userName] (check-user-exists userName))
-  (comp/GET "/checkduplicateaccount" [firstName lastName username email productContext] (check-duplicate-subscription firstName lastName username email productContext))
   (comp/POST "/recovery-info" request (recovery-info-create ( :body request))); this handler is not finished. do not call!!!
-  (comp/ANY "/*" request
-      (create-error-response (HttpServletResponse/SC_NOT_FOUND) "Page not found. 404 returned.")
-  )
+  (comp/ANY "/*" request (create-error-response (HttpServletResponse/SC_NOT_FOUND) "Page not found. 404 returned."))
 )

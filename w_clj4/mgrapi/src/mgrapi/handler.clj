@@ -19,6 +19,7 @@
   )
 )
 
+; 
 (def context-files
   [
    "applicationContext.xml"
@@ -46,7 +47,7 @@
 )
 
 (defn- json-response? [response]
-  (log/info "json-response?: ----------- started")
+  (log/info "json-response?: ----------- started. response =" response)
   (if-let [type ((:headers response) "Content-Type")]
     (not (empty? (re-find #"^application/(vnd.+)?json" type)))
   )
@@ -59,24 +60,24 @@
 ; Process the body of the response. It is guaranteed to be a map with either correct response, or "error"
 ; This function returns the new body consisting with one the following at the top level:
 ; 1. "response" with the original body as the value if "error" is not present
-; 2. "error" if it was present
+; 2. original body if "error" was present
 (defn- process-json-response-body [body]
   (log/info "process-json-response-body: ----------- started. body =" (with-out-str (pprint body)))
-  (if (nil? (:error body))
-    {:response body}
-    {:error (:error body)}
+  (if (:error body) body { :response body }
   )
 )
 
-;(def- protected-routes
-;  '("/account/id", "/account/login", "/user/exist")
-;)
+; These patterns must match route definitions
+(def protected-routes
+  '( #"/account/id/[\\d]+", #"/account/login/[^/\\s]+", #"/user/exists", #"/user/duplicatesub", #"/user/validateuserinfo" )
+)
 
 ; Check against the list of routes which require request id. Since part of the route may be a variable,
 ; it does not have to be exact match.
 ; /account/id/12345 will match /account/id
-(defn- request-id-required-for-uri [uri]
-  false
+(defn- protected-route? [uri]
+  (log/info "protected-route?: ----------- checking uri " uri)
+  (some #(re-matches % uri) protected-routes)
 )
 
 ; This middleware has to be above wrap-json-response
@@ -85,7 +86,7 @@
   (fn [request]
     (log/info "wrap-pwiec: ----------- started")
     (let [request-id ((:query-params request) "requestId")]
-	    (if (or (not (request-id-required-for-uri (:uri request))) (request-id-valid? request-id))
+	    (if (or (not (protected-route? (:uri request))) (request-id-valid? request-id))
 		    (let 
 		      [
 		        start-time (System/nanoTime)
@@ -94,9 +95,11 @@
 		        duration (/ (double (- end-time start-time)) 1000000) ; in milliseconds
 	          response-body (:body response)
 		      ]
+          (log/info "wrap-pwiec: ----------- (json-response? response)" (json-response? response))
+          (log/info "wrap-pwiec: ----------- (map? response-body)" (map? response-body))
           (log/info "wrap-pwiec: ----------- condition to call process-json-response-body (should be true)" (and (json-response? response) (map? response-body)))
 		      (if (and (json-response? response) (map? response-body))
-	          (assoc response :body (merge 
+	          (assoc response :body (conj 
                                     (assoc (process-json-response-body response-body)
                                       :duration duration
                                       :status (:status response)
