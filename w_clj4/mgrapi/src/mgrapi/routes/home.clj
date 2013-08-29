@@ -1,13 +1,12 @@
 (ns mgrapi.routes.home
   (:use
-    [mgrapi.spring :as spring :only (account-manager search-manager user-search-manager)]
+    [mgrapi.spring :as spring]
     [mgrapi.views.layout :as layout]
     [clojure.java.data :as data]
     [clojure.tools.logging :as log]
     [clojure.pprint]
-    [compojure.core :as comp :only (GET ANY context)]
-    [compojure.route :as route :only (not-found)]
-    [ring.util.response :as response :only [response]]
+    [compojure.core :as comp]
+    [ring.util.response :as response]
   )
 
   (:import
@@ -274,5 +273,4 @@
   (comp/GET "/" request (home request))
   (comp/GET "/test/:id" request (print-map request))
   (comp/POST "/recovery-info" request (recovery-info-create ( :body request))); this handler is not finished. do not call!!!
-  (comp/ANY "/*" request (create-error-response (HttpServletResponse/SC_NOT_FOUND) "Page not found. 404 returned."))
 )

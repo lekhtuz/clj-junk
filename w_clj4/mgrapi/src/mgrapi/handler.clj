@@ -4,15 +4,15 @@
     [clojure.pprint]
     [compojure.core :as comp]
     [compojure.handler :as handler]
-    [compojure.route :as route]
     [hiccup.middleware :refer [wrap-base-url]]
     [mgrapi.spring :as spring]
-    [mgrapi.routes.home :as home :only [home-routes create-error-response]]
+    [mgrapi.routes.home :as home]
+    [mgrapi.routes.myaccount :as myaccount]
     [ring.middleware.json :as json]
     [ring.middleware.resource :as resource]
     [ring.middleware.file-info :as file-info]
     [ring.middleware.params :as params]
-    [ring.util.response :as response :only [response content-type]]
+    [ring.util.response :as response]
   )
   (:import
     [javax.servlet.http HttpServletResponse]
@@ -38,12 +38,11 @@
 )
   
 (comp/defroutes app-routes
-  (route/resources "/")
-  (route/not-found "Not Found")
+  (comp/ANY "/*" request (create-error-response (HttpServletResponse/SC_NOT_FOUND) "Page not found. 404 returned."))
 )
 
 (def app 
-  (handler/site (routes home/home-routes app-routes))
+  (handler/site (routes myaccount/myaccount-routes home/home-routes app-routes))
 )
 
 (defn- json-response? [response]
