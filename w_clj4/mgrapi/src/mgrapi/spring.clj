@@ -8,6 +8,7 @@
 (declare ^:dynamic *bean-map*)
 
 (declare ^:dynamic account-manager)
+(declare ^:dynamic access-manager)
 (declare ^:dynamic search-manager)
 (declare ^:dynamic user-search-manager)
 
@@ -56,6 +57,7 @@
     (def ^:dynamic *spring-context* ctx)
     (def ^:dynamic *bean-map* (create-bean-map ctx))
     (def ^:dynamic account-manager (get-bean "accountManager"))
+    (def ^:dynamic access-manager (get-bean "accessManager"))
     (def ^:dynamic search-manager (get-bean "searchManager"))
     (def ^:dynamic user-search-manager (get-bean "userSearchManager"))
     ctx))

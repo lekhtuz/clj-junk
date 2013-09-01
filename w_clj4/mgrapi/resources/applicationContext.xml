@@ -12,6 +12,11 @@
 		<property name="erightsToDomainEmailTransformer" ref="eRightsURIToDomainEmailTransformer"/>
 	</bean>
 
+	<bean id="accessManager" class="com.emeta.cu.business.manager.impl.AccessManagerImpl">
+		<property name="erightsToDomainAddressTransformer" ref="eRightsToDomainAddressTransformer"/>
+		<property name="erightsToDomainEmailTransformer" ref="eRightsURIToDomainEmailTransformer"/>
+	</bean>
+
 	<bean id="searchManager" class="com.emeta.cu.business.manager.impl.SearchManagerImpl"/>
 
 	<bean id="userSearchManager" class="com.emeta.cu.business.manager.impl.UserSearchManagerImpl">
