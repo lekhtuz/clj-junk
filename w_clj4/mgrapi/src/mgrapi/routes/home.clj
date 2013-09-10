@@ -272,5 +272,5 @@
   (comp/context "/user" [] user-routes)
   (comp/GET "/" request (home request))
   (comp/GET "/test/:id" request (print-map request))
-  (comp/POST "/recovery-info" request (recovery-info-create ( :body request))); this handler is not finished. do not call!!!
+  (comp/POST "/recovery-info" request (recovery-info-create (:body request))); this handler is not finished. do not call!!!
 )

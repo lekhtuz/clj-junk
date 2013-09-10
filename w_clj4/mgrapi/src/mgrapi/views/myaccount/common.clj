@@ -20,6 +20,8 @@
 
 (def page-width (str page-width-numeric "px"))
 
+(declare ^:dynamic field-map)
+
 (defn decorate [title bodyfn colspan]
 ;  (log/info "request=" request)
   (html5
@@ -28,7 +30,7 @@
       (include-css "/css/myaccount/screen.css")
     ]
     [:body
-      [:table (style :margin-left "15px" :margin-top "0px" :width page-width)
+      [:table (style :margin-left "15px" :margin-top "0" :width page-width)
         [:tr
           [:td { :colspan colspan }
             [:table { :align "right" }
@@ -44,7 +46,7 @@
           [:td { :colspan colspan }
 	          [:table (style :cursor "pointer" :border "1px solid #B3BBC9" :background "url(/img/myaccount/back_dot_cro.gif)" :margin-top "20px" :width page-width)
 	            [:tr
-	              [:td (link-to "http://www.consumerreports.org" (image "/img/myaccount/head_crtitle.gif")) ]
+	              [:td (style :padding "0") (link-to "http://www.consumerreports.org" (image "/img/myaccount/head_crtitle.gif")) ]
 	            ]
 	          ]
           ]
@@ -73,7 +75,7 @@
   )
 )
 
-(defn- magazine-section
+(def magazine-section
   (
     [title code subscribe_url gift_url]
     (list
@@ -113,7 +115,8 @@
   )
 )
 
-(defn other-links []
+; def evaluates only on the first call, defn [] evaluates on every call
+(def other-links
   (unordered-list
     (list
       (link-to "http://custhelp.consumerreports.org/cgi-bin/consumerreports.cfg/php/enduser/home.php" "Customer service")
@@ -126,7 +129,7 @@
   )
 )
 
-(defn manage-print-products []
+(def manage-print-products
   (list
     (magazine-section "Magazine" "CNS" "cr" nil "IG106C")
     [:p]
@@ -141,7 +144,7 @@
   )
 )
 
-(defn online-products []
+(def online-products
   (list
     [:strong "ConsumerReports.org" ] [:br]
     [:span { :class "font-size10" }
@@ -162,4 +165,17 @@
       (link-to "/ec/aps/order.htm?INTKEY=WA37M00" "Subscribe")
     ]
   )
+)
+
+; Supported element functions: text-field
+(defn with-validation [elem-name elem-fn validation-fn]
+  (log/info "elem-name =" elem-name)
+  (log/info "elem-fn =" elem-fn)
+  (log/info "validation-fn =" validation-fn)
+  (let
+    [
+    ]
+  )
+  (assoc fild-map elem-name validation-fn)
+  (elem-fn elem-name)
 )

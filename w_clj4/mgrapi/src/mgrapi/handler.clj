@@ -10,8 +10,10 @@
     [mgrapi.routes.myaccount :as myaccount]
     [ring.middleware.json :as json]
     [ring.middleware.resource :as resource]
+    [ring.middleware.session]
     [ring.middleware.file-info :as file-info]
-    [ring.middleware.params :as params]
+    [ring.middleware.keyword-params]
+    [ring.middleware.params]
     [ring.util.response :as response]
   )
   (:import
@@ -132,17 +134,21 @@
   )
 )
 
+; middleware handlers are executed from bottom to top
 (def war-handler 
   (-> app
+    (wrap-resource "public") ; return static resource, do not call down the chain if it exists.
 ;    (wrap-log-request-response "before wrap-params")
     (wrap-pwiec) ; This middleware has to be above wrap-json-response
-    (wrap-log-request-response "between wrap-params and wrap-pwiec")
-    (params/wrap-params)
-;    (wrap-log-request-response "after wrap-pwiec")
+    (wrap-log-request-response "between wrap-pwiec and wrap-keyword-params")
+    (wrap-keyword-params) ; convert keys inside :params map from "key" to :key
+    (wrap-log-request-response "between wrap-keyword-params and wrap-params")
+    (wrap-params) ; create :params entry with query string and form parameters
+    (wrap-log-request-response "after wrap-params")
     (wrap-base-url)
-    (file-info/wrap-file-info)
-    (json/wrap-json-response)
-    (json/wrap-json-body)
-    (wrap-resource "public") ; return static resource, do not call down the chain if it exists.
+    (wrap-file-info)
+    (wrap-json-response) ; encode outgoing json body
+    (wrap-json-body) ; decode incoming json body
+    (wrap-session) ; create :session entry in the request map
   )
 )

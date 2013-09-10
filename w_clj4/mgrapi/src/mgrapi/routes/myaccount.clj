@@ -8,7 +8,7 @@
 
 (defroutes myaccount-routes-internal
   (GET "/login.htm" [] login)
-  (POST "/login.htm" request (do-login request))
+  (POST "/login.htm" [] do-login)
   (GET "/main.htm" [] home)
 )
 

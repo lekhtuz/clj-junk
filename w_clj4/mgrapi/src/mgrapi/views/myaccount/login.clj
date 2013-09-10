@@ -1,12 +1,13 @@
 (ns mgrapi.views.myaccount.login
   (:require
-    [mgrapi.views.myaccount.common :refer [decorate style page-width page-width-numeric section-table manage-print-products online-products other-links]]
+    [mgrapi.views.myaccount.common :refer [decorate style page-width page-width-numeric section-table manage-print-products online-products other-links with-validation]]
 
     [hiccup.element :refer [link-to]]
     [hiccup.form :refer [form-to label text-field password-field submit-button]]
   )
   (:use
     [ring.util.response :as response :only [response]]
+    [clojure.tools.logging :as log]
   )
 )
 
@@ -24,7 +25,7 @@
               [:table (style :color "#474747")
                 [:tr
                   [:td { :width "50%", :style "padding: 0px; font-size: 11px; font-weight: bold;" } "- ConsumerReports.org" ]
-                  [:td { :rowspan 2, :valign "top", :style "padding: 0px; font-size: 11px; font-weight: bold;" } "- ConsumerReports.org Cars Best Deals Plus" ]
+                  [:td { :rowspan 2, :valign "top", :style "padding: 0; font-size: 11px; font-weight: bold;" } "- ConsumerReports.org Cars Best Deals Plus" ]
                 ]
                 [:tr
                   [:td { :style "padding: 0px; font-size: 11px; font-weight: bold;" } "- " [:em "CR"] " Car Pricing Service" ]
@@ -34,7 +35,7 @@
                 [:table { :id "login-table" }
                   [:tr
                     [:td (label  "userName" "Username:") ]
-                    [:td (text-field "userName") ]
+                    [:td (with-validation text-field "userName") ]
                     [:td { :rowspan 2, :valign "bottom" } (submit-button "Log In")]
                   ]
                   [:tr
@@ -98,16 +99,18 @@
 )
 
 (defn home [request]
+  (set! field-map (:session request))
   (decorate "Welcome to CRO Home Page" home-page 2)
 )
 
 (defn do-login [request]
   (let
     [
-      user-name ((:params request) "userName")
-      password ((:params request) "password")
+      user-name (:userName (:params request))
+      password (:password (:params request))
     ]
+    (log/info "do-login: user-name =" user-name ", password =" password)
+    (response/redirect "/ec/myaccount/main.htm")
   )
-  (response/redirect "/ec/myaccount/main.htm")
 )
 
